@@ -3,348 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flight History Tracker</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .aircraft-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 15px;
-            transition: all 0.3s ease;
-        }
-        .aircraft-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-        .aircraft-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-        .aircraft-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #3498db;
-            margin: 0;
-        }
-        .flight-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .flight-table th, .flight-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        .flight-table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .flight-table tr:hover {
-            background-color: #f8f9fa;
-        }
-        .loading {
-            text-align: center;
-            color: #7f8c8d;
-            font-style: italic;
-        }
-        .error {
-            color: #e74c3c;
-            font-style: italic;
-        }
-        .no-flights {
-            text-align: center;
-            color: #7f8c8d;
-            font-style: italic;
-            padding: 20px;
-        }
-        .refresh-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-            margin-bottom: 20px;
-        }
-        .refresh-btn:hover {
-            background-color: #2980b9;
-        }
-        .date-info {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #7f8c8d;
-        }
-    </style>
+    <title>Flight Analytics</title>
 </head>
 <body>
-    <h1>Flight History Tracker</h1>
-    <div class="date-info" id="dateInfo"></div>
-    <button class="refresh-btn" id="refreshBtn">Refresh Data</button>
-    <div class="container" id="aircraftContainer"></div>
+    <h1>Flight Analytics</h1>
+    <div id="loading">Loading flight data...</div>
+    <div id="results"></div>
 
     <script>
-        const aircraftData = {
-            'N265TX': 'A2934F',
-            'N282TX': 'A2D728',
-            'N283TX': 'A2DADF',
-            'N284TX': 'A2DE96',
-            'N285TX': 'A2E24D',
-            'N287TX': 'A2E9BB',
-            'N289TX': 'A2F129',
-            'N290TX': 'A2F739',
-            'N291TX': 'A2FAF0',
-            'N293TC': 'A3024B',
-            'N294TX': 'A30615',
-            'N295TX': 'A309CC',
-            'N298TX': 'A314F1',
-            'N300CS': 'A31F95',
-            'N400TE': 'A4AE4F',
-            'N517TX': 'A67D2F',
-            'N65PW': 'A88BBB',
-            'N713DD': 'A98781',
-            'N717DD': 'A9965D',
+        // Dictionary mapping N-number to icao24
+        const aircraftDict = {
+            'N265TX': 'A2934F', 
+            'N282TX': 'A2D728', 
+            'N283TX': 'A2DADF', 
+            'N284TX': 'A2DE96', 
+            'N285TX': 'A2E24D', 
+            'N287TX': 'A2E9BB', 
+            'N289TX': 'A2F129', 
+            'N290TX': 'A2F739', 
+            'N291TX': 'A2FAF0', 
+            'N293TC': 'A3024B', 
+            'N294TX': 'A30615', 
+            'N295TX': 'A309CC', 
+            'N298TX': 'A314F1', 
+            'N300CS': 'A31F95', 
+            'N400TE': 'A4AE4F', 
+            'N517TX': 'A67D2F', 
+            'N65PW': 'A88BBB', 
+            'N713DD': 'A98781', 
+            'N717DD': 'A9965D', 
             'N80NB': 'AAE0B2'
         };
 
-        // Function to format epoch time to readable date and time
-        function formatDateTime(epochSeconds) {
-            const date = new Date(epochSeconds * 1000);
+        // Function to calculate the beginning of the current month in epoch time
+        function getStartOfMonth() {
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            return Math.floor(startOfMonth.getTime() / 1000);
+        }
+
+        // Function to get current time in epoch
+        function getCurrentTime() {
+            return Math.floor(Date.now() / 1000);
+        }
+
+        // Format date for display
+        function formatDate(timestamp) {
+            const date = new Date(timestamp * 1000);
             return date.toLocaleString();
         }
 
-        // Function to format flight duration
-        function formatDuration(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            return `${hours}h ${minutes}m`;
-        }
-
-        // Function to create aircraft card
-        function createAircraftCard(nNumber, icao24) {
-            const aircraftContainer = document.getElementById('aircraftContainer');
-            
-            const card = document.createElement('div');
-            card.className = 'aircraft-card';
-            card.id = `aircraft-${icao24}`;
-            
-            const header = document.createElement('div');
-            header.className = 'aircraft-header';
-            
-            const title = document.createElement('h2');
-            title.className = 'aircraft-title';
-            title.textContent = `${nNumber} (ICAO24: ${icao24})`;
-            
-            header.appendChild(title);
-            card.appendChild(header);
-            
-            const loading = document.createElement('div');
-            loading.className = 'loading';
-            loading.textContent = 'Loading flight data...';
-            card.appendChild(loading);
-            
-            aircraftContainer.appendChild(card);
-            return card;
-        }
-
-        // Function to create flight table
-        function createFlightTable(flights) {
-            if (!flights || flights.length === 0) {
-                const noFlights = document.createElement('div');
-                noFlights.className = 'no-flights';
-                noFlights.textContent = 'No flights found for this aircraft in the selected time period.';
-                return noFlights;
-            }
-            
-            const table = document.createElement('table');
-            table.className = 'flight-table';
-            
-            // Create table header
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            const headers = ['Callsign', 'Departure', 'Arrival', 'Departure Time', 'Arrival Time', 'Duration'];
-            
-            headers.forEach(headerText => {
-                const th = document.createElement('th');
-                th.textContent = headerText;
-                headerRow.appendChild(th);
-            });
-            
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            
-            // Create table body
-            const tbody = document.createElement('tbody');
-            
-            flights.forEach(flight => {
-                const row = document.createElement('tr');
-                
-                // Callsign
-                const callsignCell = document.createElement('td');
-                callsignCell.textContent = flight.callsign?.trim() || 'N/A';
-                row.appendChild(callsignCell);
-                
-                // Departure airport
-                const depCell = document.createElement('td');
-                depCell.textContent = flight.estDepartureAirport || 'N/A';
-                row.appendChild(depCell);
-                
-                // Arrival airport
-                const arrCell = document.createElement('td');
-                arrCell.textContent = flight.estArrivalAirport || 'N/A';
-                row.appendChild(arrCell);
-                
-                // Departure time
-                const depTimeCell = document.createElement('td');
-                depTimeCell.textContent = flight.firstSeen ? formatDateTime(flight.firstSeen) : 'N/A';
-                row.appendChild(depTimeCell);
-                
-                // Arrival time
-                const arrTimeCell = document.createElement('td');
-                arrTimeCell.textContent = flight.lastSeen ? formatDateTime(flight.lastSeen) : 'N/A';
-                row.appendChild(arrTimeCell);
-                
-                // Duration
-                const durationCell = document.createElement('td');
-                if (flight.firstSeen && flight.lastSeen) {
-                    const duration = flight.lastSeen - flight.firstSeen;
-                    durationCell.textContent = formatDuration(duration);
-                } else {
-                    durationCell.textContent = 'N/A';
-                }
-                row.appendChild(durationCell);
-                
-                tbody.appendChild(row);
-            });
-            
-            table.appendChild(tbody);
-            return table;
-        }
-
-        // Function to fetch flight data for a specific aircraft
-        async function fetchFlightData(icao24, beginTime, endTime) {
-            const url = `https://opensky-network.org/api/flights/aircraft?icao24=${icao24}&begin=${beginTime}&end=${endTime}`;
-            
+        // Fetch flight data for a specific aircraft
+        async function fetchFlightData(icao24, begin, end) {
             try {
-                const response = await fetch(url);
+                const response = await fetch(`https://opensky-network.org/api/flights/aircraft?icao24=${icao24}&begin=${begin}&end=${end}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-                const data = await response.json();
-                return data;
+                return await response.json();
             } catch (error) {
                 console.error(`Error fetching data for ${icao24}:`, error);
                 return { error: error.message };
             }
         }
 
-        // Function to update the aircraft card with flight data
-        async function updateAircraftCard(nNumber, icao24, beginTime, endTime) {
-            const card = document.getElementById(`aircraft-${icao24}`) || createAircraftCard(nNumber, icao24);
+        // Main function to fetch all data and display results
+        async function fetchAllFlightData() {
+            const startTime = getStartOfMonth();
+            const endTime = getCurrentTime();
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
             
-            // Show loading state
-            card.innerHTML = '';
-            const header = document.createElement('div');
-            header.className = 'aircraft-header';
-            
-            const title = document.createElement('h2');
-            title.className = 'aircraft-title';
-            title.textContent = `${nNumber} (ICAO24: ${icao24})`;
-            
-            header.appendChild(title);
-            card.appendChild(header);
-            
-            const loading = document.createElement('div');
-            loading.className = 'loading';
-            loading.textContent = 'Loading flight data...';
-            card.appendChild(loading);
-            
-            // Fetch flight data
-            const flightData = await fetchFlightData(icao24, beginTime, endTime);
-            
-            // Remove loading indicator
-            card.removeChild(loading);
-            
-            // Handle error
-            if (flightData.error) {
-                const error = document.createElement('div');
-                error.className = 'error';
-                error.textContent = `Error: ${flightData.error}`;
-                card.appendChild(error);
-                return;
+            resultsDiv.innerHTML = `<p>Date Range: ${formatDate(startTime)} to ${formatDate(endTime)}</p>`;
+
+            // Create table for results
+            const table = document.createElement('table');
+            table.border = '1';
+            table.style.borderCollapse = 'collapse';
+            table.innerHTML = `
+                <tr>
+                    <th>N-Number</th>
+                    <th>ICAO24</th>
+                    <th>Flights Count</th>
+                    <th>Flight Details</th>
+                </tr>
+            `;
+            resultsDiv.appendChild(table);
+
+            // Process each aircraft
+            for (const [nNumber, icao24] of Object.entries(aircraftDict)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${nNumber}</td>
+                    <td>${icao24}</td>
+                    <td>Loading...</td>
+                    <td>Loading...</td>
+                `;
+                table.appendChild(row);
+                
+                // Fetch data for this aircraft
+                const flightData = await fetchFlightData(icao24, startTime, endTime);
+                
+                // Update the row with the flight data
+                if (flightData.error) {
+                    row.children[2].textContent = 'Error';
+                    row.children[3].textContent = flightData.error;
+                } else {
+                    row.children[2].textContent = flightData.length || 0;
+                    
+                    // Create details section
+                    const detailsDiv = document.createElement('div');
+                    if (flightData.length > 0) {
+                        const detailsList = document.createElement('ul');
+                        flightData.forEach(flight => {
+                            const item = document.createElement('li');
+                            item.innerHTML = `
+                                Flight: ${flight.callsign || 'N/A'}<br>
+                                Departure: ${flight.estDepartureAirport || 'Unknown'} at ${formatDate(flight.firstSeen)}<br>
+                                Arrival: ${flight.estArrivalAirport || 'Unknown'} at ${formatDate(flight.lastSeen)}<br>
+                            `;
+                            detailsList.appendChild(item);
+                        });
+                        detailsDiv.appendChild(detailsList);
+                    } else {
+                        detailsDiv.textContent = 'No flights found in this period';
+                    }
+                    row.children[3].innerHTML = '';
+                    row.children[3].appendChild(detailsDiv);
+                }
             }
             
-            // Add flight table or no flights message
-            const flightTable = createFlightTable(flightData);
-            card.appendChild(flightTable);
+            loadingDiv.style.display = 'none';
         }
 
-        // Function to get the first day of current month as epoch time
-        function getFirstDayOfMonthEpoch() {
-            const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            return Math.floor(firstDay.getTime() / 1000);
-        }
-
-        // Function to get current time as epoch time
-        function getCurrentEpochTime() {
-            return Math.floor(Date.now() / 1000);
-        }
-
-        // Function to update the date info display
-        function updateDateInfo(beginTime, endTime) {
-            const dateInfo = document.getElementById('dateInfo');
-            const beginDate = new Date(beginTime * 1000);
-            const endDate = new Date(endTime * 1000);
-            
-            dateInfo.textContent = `Showing flights from ${beginDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-        }
-
-        // Function to load all flight data
-        async function loadAllFlightData() {
-            const beginTime = getFirstDayOfMonthEpoch();
-            const endTime = getCurrentEpochTime();
-            
-            // Update date info
-            updateDateInfo(beginTime, endTime);
-            
-            // Clear container
-            const container = document.getElementById('aircraftContainer');
-            container.innerHTML = '';
-            
-            // Load data for each aircraft
-            for (const [nNumber, icao24] of Object.entries(aircraftData)) {
-                await updateAircraftCard(nNumber, icao24, beginTime, endTime);
-            }
-        }
-
-        // Add event listener for refresh button
-        document.getElementById('refreshBtn').addEventListener('click', loadAllFlightData);
-
-        // Initial load
-        document.addEventListener('DOMContentLoaded', loadAllFlightData);
+        // Start fetching data when page loads
+        window.onload = fetchAllFlightData;
     </script>
 </body>
 </html>
