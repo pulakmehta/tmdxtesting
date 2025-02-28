@@ -55,15 +55,22 @@
 
         // Fetch flight data for a specific aircraft
         async function fetchFlightData(icao24, begin, end) {
+            const url = `https://opensky-network.org/api/flights/aircraft?icao24=${icao24}&begin=${begin}&end=${end}`;
             try {
-                const response = await fetch(`https://opensky-network.org/api/flights/aircraft?icao24=${icao24}&begin=${begin}&end=${end}`);
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-                return await response.json();
+                return { 
+                    data: await response.json(),
+                    url: url
+                };
             } catch (error) {
                 console.error(`Error fetching data for ${icao24}:`, error);
-                return { error: error.message };
+                return { 
+                    error: error.message,
+                    url: url
+                };
             }
         }
 
@@ -85,6 +92,7 @@
                     <th>N-Number</th>
                     <th>ICAO24</th>
                     <th>Flights Count</th>
+                    <th>API URL</th>
                     <th>Flight Details</th>
                 </tr>
             `;
@@ -98,21 +106,31 @@
                     <td>${icao24}</td>
                     <td>Loading...</td>
                     <td>Loading...</td>
+                    <td>Loading...</td>
                 `;
                 table.appendChild(row);
                 
                 // Fetch data for this aircraft
-                const flightData = await fetchFlightData(icao24, startTime, endTime);
+                const result = await fetchFlightData(icao24, startTime, endTime);
+                const flightData = result.data;
+                const apiUrl = result.url;
                 
                 // Update the row with the flight data
-                if (flightData.error) {
+                if (result.error) {
                     row.children[2].textContent = 'Error';
-                    row.children[3].textContent = flightData.error;
+                    row.children[3].innerHTML = `<a href="${apiUrl}" target="_blank">${apiUrl}</a>`;
+                    row.children[4].textContent = result.error;
                 } else {
+                    // Update flight count
                     row.children[2].textContent = flightData.length || 0;
                     
-                    // Create details section
-                    const detailsDiv = document.createElement('div');
+                    // Display API URL as a clickable link
+                    row.children[3].innerHTML = `<a href="${apiUrl}" target="_blank">${apiUrl}</a>`;
+                    
+                    // Display flight details
+                    const detailsCell = row.children[4];
+                    detailsCell.innerHTML = '';
+                    
                     if (flightData.length > 0) {
                         const detailsList = document.createElement('ul');
                         flightData.forEach(flight => {
@@ -124,12 +142,10 @@
                             `;
                             detailsList.appendChild(item);
                         });
-                        detailsDiv.appendChild(detailsList);
+                        detailsCell.appendChild(detailsList);
                     } else {
-                        detailsDiv.textContent = 'No flights found in this period';
+                        detailsCell.textContent = 'No flights found in this period';
                     }
-                    row.children[3].innerHTML = '';
-                    row.children[3].appendChild(detailsDiv);
                 }
             }
             
