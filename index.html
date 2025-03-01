@@ -163,42 +163,32 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
               }
               
-             const data = await response.json();
-
+              const data = await response.json();
+              
               // Process flight data
-              if (Array.isArray(data) && data.length > 0) {
-                // Add N-number to each flight record and ensure we properly handle
-                // airport codes and missing values
-                const flights = data.map(flight => {
-                  // Determine if we have valid airport data
-                  const departureAirport = flight.estDepartureAirport || 'Unknown';
-                  const arrivalAirport = flight.estArrivalAirport || 'Unknown';
-                  
-                  // Ensure flight has complete data for display
-                  return {
+              if (Array.isArray(data)) {
+                if (data.length > 0) {
+                  // Add N-number to each flight record and ensure we properly handle
+                  // airport codes and missing values
+                  const flights = data.map(flight => ({
                     ...flight,
                     nNumber,
-                    // Clean and standardize airport codes
-                    estDepartureAirport: departureAirport,
-                    estArrivalAirport: arrivalAirport,
+                    estDepartureAirport: flight.estDepartureAirport || 'Unknown',
+                    estArrivalAirport: flight.estArrivalAirport || 'Unknown',
                     // Clean up callsign (remove trailing spaces)
-                    callsign: flight.callsign ? flight.callsign.trim() : 'N/A',
-                    // Ensure firstSeen and lastSeen are available for duration calculations
-                    firstSeen: flight.firstSeen || 0,
-                    lastSeen: flight.lastSeen || 0
-                  };
-                });
-                
-                // Filter out incomplete or problematic flight records
-                const validFlights = flights.filter(flight => 
-                  // Only include flights that have at least one airport and time data
-                  ((flight.estDepartureAirport !== 'Unknown' || 
-                    flight.estArrivalAirport !== 'Unknown') && 
-                    flight.firstSeen && flight.lastSeen)
-                );
-                
-                allFlights.push(...validFlights);
-              }              
+                    callsign: flight.callsign ? flight.callsign.trim() : 'N/A'
+                  }));
+                  
+                  // Add all flights to our collection
+                  allFlights.push(...flights);
+                  console.log(`Added ${flights.length} flights for aircraft ${nNumber}`);
+                } else {
+                  console.log(`No flights found for aircraft ${nNumber}`);
+                }
+              } else {
+                console.error(`Unexpected data format for aircraft ${nNumber}:`, data);
+              }
+              
               // Add 0.5s delay between API calls to avoid rate limiting
               await delay(500);
             } catch (err) {
@@ -207,6 +197,9 @@
               console.warn(`Skipping aircraft ${nNumber} due to error, continuing with next aircraft`);
             }
           }
+          
+          // Log the total number of flights found
+          console.log(`Total flights found across all aircraft: ${allFlights.length}`);
           
           // Sort by departure time (most recent first)
           setFlightData(allFlights.sort((a, b) => b.firstSeen - a.firstSeen));
@@ -311,7 +304,8 @@
             {loading ? (
               <div className="p-6 text-center">
                 <div className="spinner"></div>
-                <p className="mt-4 text-gray-500">Loading flight data...</p>
+                <p className="mt-4 text-gray-500">Loading flight data from all aircraft...</p>
+                <p className="text-xs text-gray-400">This may take a moment as we process data for multiple aircraft</p>
               </div>
             ) : flightData.length === 0 ? (
               <div className="p-6 text-center text-gray-500">No flights found in the last 24 hours</div>
@@ -330,7 +324,10 @@
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {flightData.map((flight, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
+                      <tr 
+                        key={flight.nNumber + "-" + flight.firstSeen + "-" + index} 
+                        className={index % 2 === 0 ? "hover:bg-gray-50 bg-white" : "hover:bg-gray-50 bg-gray-50"}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {flight.nNumber}
                         </td>
@@ -363,6 +360,7 @@
           
           <footer className="mt-6 text-center text-gray-500 text-sm mb-16">
             <p>Data is fetched from the OpenSky Network API with a 0.5s delay between requests to avoid rate limiting.</p>
+            <p className="mt-1">All flights for each aircraft are displayed, including multiple flights per aircraft when available.</p>
             <p className="mt-1">Aircraft with no flights in the last 24 hours are automatically skipped.</p>
           </footer>
         </div>
