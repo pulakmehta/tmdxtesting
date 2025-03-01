@@ -261,13 +261,16 @@
           <div className="bg-blue-800 text-white rounded-lg shadow-md p-4 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="flex items-center mb-4 md:mb-0">
-                <img src="https://wjm.s3.amazonaws.com/asts/uploads/4103_1675175780.png" alt="TransMedics Logo" className="h-8 mr-4" />
-                <h1 className="text-2xl font-bold">Revenue Dashboard</h1>
+                <div className="flex items-center">
+                  <span className="text-red-600 font-bold text-2xl mr-1">Ⓡ</span>
+                  <span className="text-black font-bold text-2xl">TransMedics.</span>
+                </div>
+                <h1 className="text-2xl font-bold ml-4">Revenue Dashboard</h1>
               </div>
               <div className="flex items-center">
                 <span className="mr-2">Developed by</span>
                 <a href="https://x.com/jinacapital" target="_blank" rel="noopener noreferrer" className="flex items-center">
-                  <img src="https://x.com/jinacapital/photo" alt="Jina Capital" className="h-6 w-6 rounded-full mr-1" />
+                  <img src="jina.png" alt="Jina Capital" className="h-6 w-6 rounded-full mr-1" />
                   <span className="font-bold">Jina Capital</span>
                 </a>
               </div>
@@ -295,14 +298,7 @@
             </div>
           </header>
           
-          {/* API Usage Warning */}
-          <div className="warning-banner mb-6 flex items-start">
-            <div className="mr-2 mt-1"><WarningIcon /></div>
-            <div>
-              <h3 className="font-bold text-orange-600">API Usage Warning</h3>
-              <p>Repeated use of this dashboard may lead to an API block from OpenSky Network. If you encounter issues, please wait some time before trying again.</p>
-            </div>
-          </div>
+
 
           {/* Error Message */}
           {error && (
