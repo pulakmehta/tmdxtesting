@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flight Tracker Dashboard</title>
+  <title>TransMedics Revenue Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -46,10 +46,32 @@
       margin-bottom: 1rem;
       border-left: 4px solid #e53e3e;
     }
+    .credit-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #1a365d;
+      color: white;
+      text-align: center;
+      padding: 8px 0;
+      z-index: 1000;
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen pb-12">
   <div id="root"></div>
+  
+  <div class="credit-bar">
+    <div class="container mx-auto flex justify-between items-center px-4">
+      <div>
+        <img src="https://wjm.s3.amazonaws.com/asts/uploads/4103_1675175780.png" alt="TransMedics Logo" class="h-6">
+      </div>
+      <div>
+        Developed by <span class="font-bold">@jinacapital</span>
+      </div>
+    </div>
+  </div>
 
   <script type="text/babel">
     // Icon components to replace lucide-react
@@ -143,26 +165,28 @@
               
               const data = await response.json();
               
-              // Check if the API returned an empty array (no flights for this aircraft)
+              // Process flight data
               if (Array.isArray(data) && data.length > 0) {
-                // Add N-number to each flight record
+                // Add N-number to each flight record and ensure we properly handle
+                // airport codes and missing values
                 const flights = data.map(flight => ({
                   ...flight,
-                  nNumber
+                  nNumber,
+                  estDepartureAirport: flight.estDepartureAirport || 'Unknown',
+                  estArrivalAirport: flight.estArrivalAirport || 'Unknown',
+                  // Clean up callsign (remove trailing spaces)
+                  callsign: flight.callsign ? flight.callsign.trim() : 'N/A'
                 }));
                 
                 allFlights.push(...flights);
               }
               
-              // If data is empty, just continue to the next aircraft without adding anything
-              
               // Add 0.5s delay between API calls to avoid rate limiting
               await delay(500);
             } catch (err) {
               console.error(`Error fetching data for aircraft ${nNumber}:`, err);
-              // Log the error but continue with next aircraft instead of failing the entire operation
+              // Log the error but continue with next aircraft
               console.warn(`Skipping aircraft ${nNumber} due to error, continuing with next aircraft`);
-              // We're not throwing here, so the loop will continue
             }
           }
           
@@ -187,6 +211,7 @@
       };
       
       const calculateFlightDuration = (departure, arrival) => {
+        if (!departure || !arrival) return 'Unknown';
         const durationInMinutes = Math.floor((arrival - departure) / 60);
         const hours = Math.floor(durationInMinutes / 60);
         const minutes = durationInMinutes % 60;
@@ -207,7 +232,7 @@
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="mb-4 md:mb-0">
                 <h1 className="text-3xl font-bold text-blue-800 flex items-center">
-                  <Plane /> <span className="ml-2">Flight Tracker Dashboard</span>
+                  <Plane /> <span className="ml-2">TransMedics Revenue Dashboard</span>
                 </h1>
                 <p className="text-gray-500 mt-1">
                   <Clock /> <span className="ml-1">Last updated: {currentTime.toLocaleString()}</span>
@@ -292,13 +317,13 @@
                           {flight.nNumber}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {flight.callsign || 'N/A'}
+                          {flight.callsign}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex items-center">
-                            {flight.estDepartureAirport || 'Unknown'} 
+                            {flight.estDepartureAirport} 
                             <span className="mx-1"><ArrowUpRight /></span>
-                            {flight.estArrivalAirport || 'Unknown'}
+                            {flight.estArrivalAirport}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -318,7 +343,7 @@
             )}
           </div>
           
-          <footer className="mt-6 text-center text-gray-500 text-sm">
+          <footer className="mt-6 text-center text-gray-500 text-sm mb-16">
             <p>Data is fetched from the OpenSky Network API with a 0.5s delay between requests to avoid rate limiting.</p>
             <p className="mt-1">Aircraft with no flights in the last 24 hours are automatically skipped.</p>
           </footer>
