@@ -143,8 +143,8 @@
               
               const data = await response.json();
               
-              // Check if data is an array and not empty
-              if (Array.isArray(data)) {
+              // Check if the API returned an empty array (no flights for this aircraft)
+              if (Array.isArray(data) && data.length > 0) {
                 // Add N-number to each flight record
                 const flights = data.map(flight => ({
                   ...flight,
@@ -152,16 +152,17 @@
                 }));
                 
                 allFlights.push(...flights);
-                console.log(`Fetched ${flights.length} flights for aircraft ${nNumber}`);
-              } else {
-                console.log(`No flights data or invalid response for aircraft ${nNumber}`);
               }
+              
+              // If data is empty, just continue to the next aircraft without adding anything
               
               // Add 0.5s delay between API calls to avoid rate limiting
               await delay(500);
             } catch (err) {
               console.error(`Error fetching data for aircraft ${nNumber}:`, err);
-              throw new Error(`Failed to fetch data for aircraft ${nNumber}: ${err.message}`);
+              // Log the error but continue with next aircraft instead of failing the entire operation
+              console.warn(`Skipping aircraft ${nNumber} due to error, continuing with next aircraft`);
+              // We're not throwing here, so the loop will continue
             }
           }
           
@@ -192,8 +193,7 @@
         return `${hours}h ${minutes}m`;
       };
       
-                // Calculate total revenue (handles both when flights exist and when there are none)
-          const totalRevenue = flightData.length > 0 ? flightData.length * revenuePerFlight : 0;
+      const totalRevenue = flightData.length * revenuePerFlight;
       const handleRevenueChange = (e) => {
         const value = parseFloat(e.target.value);
         if (!isNaN(value) && value >= 0) {
@@ -271,10 +271,7 @@
                 <p className="mt-4 text-gray-500">Loading flight data...</p>
               </div>
             ) : flightData.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                <p className="mb-2">No flights found in the last 24 hours</p>
-                <p className="text-sm">This is normal if no aircraft operations were recorded during this period.</p>
-              </div>
+              <div className="p-6 text-center text-gray-500">No flights found in the last 24 hours</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -323,6 +320,7 @@
           
           <footer className="mt-6 text-center text-gray-500 text-sm">
             <p>Data is fetched from the OpenSky Network API with a 0.5s delay between requests to avoid rate limiting.</p>
+            <p className="mt-1">Aircraft with no flights in the last 24 hours are automatically skipped.</p>
           </footer>
         </div>
       );
