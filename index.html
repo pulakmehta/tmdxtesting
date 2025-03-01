@@ -38,6 +38,14 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .error-message {
+      color: #e53e3e;
+      padding: 1rem;
+      background-color: #fff5f5;
+      border-radius: 0.375rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid #e53e3e;
+    }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -71,9 +79,18 @@
       </svg>
     );
 
+    const AlertCircle = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    );
+
     const FlightTracker = () => {
       const [flightData, setFlightData] = React.useState([]);
       const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState(null);
       const [revenuePerFlight, setRevenuePerFlight] = React.useState(70329); // Default value
       const [currentTime, setCurrentTime] = React.useState(new Date());
       
@@ -94,7 +111,7 @@
           setCurrentTime(new Date());
         }, 60000);
         
-        // Fetch flight data
+        // Fetch flight data on initial load
         fetchFlightData();
         
         return () => clearInterval(interval);
@@ -105,52 +122,48 @@
 
       const fetchFlightData = async () => {
         setLoading(true);
+        setError(null);
         
         try {
           const now = Math.floor(currentTime.getTime() / 1000);
           const oneDayAgo = now - (24 * 60 * 60);
           
-          // For demo purposes, generate mock data that resembles real data
-          // In a real implementation, you would use the API calls
           const allFlights = [];
           
+          // Fetch data for each aircraft with 0.5s delay between requests
           for (const [nNumber, icao24] of Object.entries(aircraftDict)) {
-            // Generate 0-3 flights per aircraft for demo
-            const flightsCount = Math.floor(Math.random() * 3) + 1;
+            const url = `https://opensky-network.org/api/flights/aircraft?icao24=${icao24}&begin=${oneDayAgo}&end=${now}`;
             
-            for (let i = 0; i < flightsCount; i++) {
-              const departureTime = oneDayAgo + Math.floor(Math.random() * (now - oneDayAgo));
-              const flightDuration = Math.floor((Math.random() * 4) + 1) * 3600; // 1-4 hours
-              const arrivalTime = departureTime + flightDuration;
+            try {
+              const response = await fetch(url);
               
-              if (arrivalTime <= now) { // Only include completed flights
-                const airports = ['DFW', 'LAX', 'JFK', 'ORD', 'ATL', 'MIA', 'SFO', 'DEN', 'LAS', 'SEA'];
-                const departureAirport = airports[Math.floor(Math.random() * airports.length)];
-                let arrivalAirport;
-                do {
-                  arrivalAirport = airports[Math.floor(Math.random() * airports.length)];
-                } while (arrivalAirport === departureAirport);
-                
-                allFlights.push({
-                  icao24,
-                  nNumber,
-                  firstSeen: departureTime,
-                  lastSeen: arrivalTime,
-                  estDepartureAirport: departureAirport,
-                  estArrivalAirport: arrivalAirport,
-                  callsign: `TX${Math.floor(Math.random() * 1000)}`
-                });
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
               }
+              
+              const data = await response.json();
+              
+              // Add N-number to each flight record
+              const flights = data.map(flight => ({
+                ...flight,
+                nNumber
+              }));
+              
+              allFlights.push(...flights);
+              
+              // Add 0.5s delay between API calls to avoid rate limiting
+              await delay(500);
+            } catch (err) {
+              console.error(`Error fetching data for aircraft ${nNumber}:`, err);
+              throw new Error(`Failed to fetch data for aircraft ${nNumber}: ${err.message}`);
             }
-            
-            // Simulate delay between API calls
-            await delay(100); // Faster for demo purposes
           }
           
           // Sort by departure time (most recent first)
           setFlightData(allFlights.sort((a, b) => b.firstSeen - a.firstSeen));
-        } catch (error) {
-          console.error("Error fetching flight data:", error);
+        } catch (err) {
+          console.error("Error fetching flight data:", err);
+          setError(`An error occurred while connecting to the OpenSky API: ${err.message}`);
         } finally {
           setLoading(false);
         }
@@ -202,6 +215,16 @@
               </button>
             </div>
           </header>
+
+          {error && (
+            <div className="error-message mb-6 flex items-start">
+              <div className="mr-2 mt-1"><AlertCircle /></div>
+              <div>
+                <h3 className="font-bold">API Connection Error</h3>
+                <p>{error}</p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -289,8 +312,7 @@
           </div>
           
           <footer className="mt-6 text-center text-gray-500 text-sm">
-            <p>Data is updated with a 0.5s delay between API calls to avoid rate limiting.</p>
-            <p className="mt-1">In a production environment, this would fetch real data from the OpenSky Network API.</p>
+            <p>Data is fetched from the OpenSky Network API with a 0.5s delay between requests to avoid rate limiting.</p>
           </footer>
         </div>
       );
