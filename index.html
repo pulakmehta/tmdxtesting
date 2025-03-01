@@ -46,32 +46,29 @@
       margin-bottom: 1rem;
       border-left: 4px solid #e53e3e;
     }
-    .credit-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
+    .progress-container {
       width: 100%;
-      background-color: #1a365d;
-      color: white;
-      text-align: center;
-      padding: 8px 0;
-      z-index: 1000;
+      background-color: #e2e8f0;
+      border-radius: 0.25rem;
+      margin: 1rem 0;
+    }
+    .progress-bar {
+      height: 8px;
+      background-color: #3b82f6;
+      border-radius: 0.25rem;
+      transition: width 0.3s ease;
+    }
+    .warning-banner {
+      background-color: #fff7ed;
+      border-left: 4px solid #f97316;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0.375rem;
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-12">
+<body class="bg-gray-100 min-h-screen">
   <div id="root"></div>
-  
-  <div class="credit-bar">
-    <div class="container mx-auto flex justify-between items-center px-4">
-      <div>
-        <img src="https://wjm.s3.amazonaws.com/asts/uploads/4103_1675175780.png" alt="TransMedics Logo" class="h-6">
-      </div>
-      <div>
-        Developed by <span class="font-bold">@jinacapital</span>
-      </div>
-    </div>
-  </div>
 
   <script type="text/babel">
     // Icon components to replace lucide-react
@@ -109,12 +106,22 @@
       </svg>
     );
 
+    const WarningIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    );
+
     const FlightTracker = () => {
       const [flightData, setFlightData] = React.useState([]);
       const [loading, setLoading] = React.useState(true);
       const [error, setError] = React.useState(null);
       const [revenuePerFlight, setRevenuePerFlight] = React.useState(70329); // Default value
       const [currentTime, setCurrentTime] = React.useState(new Date());
+      const [progress, setProgress] = React.useState(0);
+      const [progressText, setProgressText] = React.useState('');
       
       // Aircraft dictionary from N-number to ICAO24
       const aircraftDict = { 
@@ -145,15 +152,24 @@
       const fetchFlightData = async () => {
         setLoading(true);
         setError(null);
+        setProgress(0);
+        setProgressText('Initializing...');
         
         try {
           const now = Math.floor(currentTime.getTime() / 1000);
           const oneDayAgo = now - (24 * 60 * 60);
           
           const allFlights = [];
+          const totalAircraft = Object.keys(aircraftDict).length;
           
           // Fetch data for each aircraft with 0.5s delay between requests
+          let processedCount = 0;
+          
           for (const [nNumber, icao24] of Object.entries(aircraftDict)) {
+            processedCount++;
+            setProgress(Math.floor((processedCount / totalAircraft) * 100));
+            setProgressText(`Processing aircraft ${processedCount} of ${totalAircraft}: ${nNumber}`);
+            
             const url = `https://opensky-network.org/api/flights/aircraft?icao24=${icao24}&begin=${oneDayAgo}&end=${now}`;
             
             try {
@@ -203,9 +219,11 @@
           
           // Sort by departure time (most recent first)
           setFlightData(allFlights.sort((a, b) => b.firstSeen - a.firstSeen));
+          setProgressText('Data loaded successfully');
         } catch (err) {
           console.error("Error fetching flight data:", err);
           setError(`An error occurred while connecting to the OpenSky API: ${err.message}`);
+          setProgressText('Failed to load data');
         } finally {
           setLoading(false);
         }
@@ -239,11 +257,29 @@
 
       return (
         <div className="max-w-6xl mx-auto p-6">
+          {/* Top Header with Logos and Developer Info */}
+          <div className="bg-blue-800 text-white rounded-lg shadow-md p-4 mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="flex items-center mb-4 md:mb-0">
+                <img src="https://wjm.s3.amazonaws.com/asts/uploads/4103_1675175780.png" alt="TransMedics Logo" className="h-8 mr-4" />
+                <h1 className="text-2xl font-bold">Revenue Dashboard</h1>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">Developed by</span>
+                <a href="https://x.com/jinacapital" target="_blank" rel="noopener noreferrer" className="flex items-center">
+                  <img src="https://x.com/jinacapital/photo" alt="Jina Capital" className="h-6 w-6 rounded-full mr-1" />
+                  <span className="font-bold">Jina Capital</span>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          {/* Main Header */}
           <header className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="mb-4 md:mb-0">
                 <h1 className="text-3xl font-bold text-blue-800 flex items-center">
-                  <Plane /> <span className="ml-2">TransMedics Revenue Dashboard</span>
+                  <Plane /> <span className="ml-2">Flight Tracker</span>
                 </h1>
                 <p className="text-gray-500 mt-1">
                   <Clock /> <span className="ml-1">Last updated: {currentTime.toLocaleString()}</span>
@@ -258,7 +294,17 @@
               </button>
             </div>
           </header>
+          
+          {/* API Usage Warning */}
+          <div className="warning-banner mb-6 flex items-start">
+            <div className="mr-2 mt-1"><WarningIcon /></div>
+            <div>
+              <h3 className="font-bold text-orange-600">API Usage Warning</h3>
+              <p>Repeated use of this dashboard may lead to an API block from OpenSky Network. If you encounter issues, please wait some time before trying again.</p>
+            </div>
+          </div>
 
+          {/* Error Message */}
           {error && (
             <div className="error-message mb-6 flex items-start">
               <div className="mr-2 mt-1"><AlertCircle /></div>
@@ -266,6 +312,17 @@
                 <h3 className="font-bold">API Connection Error</h3>
                 <p>{error}</p>
               </div>
+            </div>
+          )}
+          
+          {/* Progress Bar (visible when loading) */}
+          {loading && (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h3 className="font-semibold mb-2">Loading Data</h3>
+              <div className="progress-container">
+                <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+              </div>
+              <p className="text-sm text-gray-600">{progressText}</p>
             </div>
           )}
 
@@ -358,7 +415,7 @@
             )}
           </div>
           
-          <footer className="mt-6 text-center text-gray-500 text-sm mb-16">
+          <footer className="mt-6 text-center text-gray-500 text-sm">
             <p>Data is fetched from the OpenSky Network API with a 0.5s delay between requests to avoid rate limiting.</p>
             <p className="mt-1">All flights for each aircraft are displayed, including multiple flights per aircraft when available.</p>
             <p className="mt-1">Aircraft with no flights in the last 24 hours are automatically skipped.</p>
