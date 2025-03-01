@@ -163,24 +163,42 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
               }
               
-              const data = await response.json();
-              
+             const data = await response.json();
+
               // Process flight data
               if (Array.isArray(data) && data.length > 0) {
                 // Add N-number to each flight record and ensure we properly handle
                 // airport codes and missing values
-                const flights = data.map(flight => ({
-                  ...flight,
-                  nNumber,
-                  estDepartureAirport: flight.estDepartureAirport || 'Unknown',
-                  estArrivalAirport: flight.estArrivalAirport || 'Unknown',
-                  // Clean up callsign (remove trailing spaces)
-                  callsign: flight.callsign ? flight.callsign.trim() : 'N/A'
-                }));
+                const flights = data.map(flight => {
+                  // Determine if we have valid airport data
+                  const departureAirport = flight.estDepartureAirport || 'Unknown';
+                  const arrivalAirport = flight.estArrivalAirport || 'Unknown';
+                  
+                  // Ensure flight has complete data for display
+                  return {
+                    ...flight,
+                    nNumber,
+                    // Clean and standardize airport codes
+                    estDepartureAirport: departureAirport,
+                    estArrivalAirport: arrivalAirport,
+                    // Clean up callsign (remove trailing spaces)
+                    callsign: flight.callsign ? flight.callsign.trim() : 'N/A',
+                    // Ensure firstSeen and lastSeen are available for duration calculations
+                    firstSeen: flight.firstSeen || 0,
+                    lastSeen: flight.lastSeen || 0
+                  };
+                });
                 
-                allFlights.push(...flights);
-              }
-              
+                // Filter out incomplete or problematic flight records
+                const validFlights = flights.filter(flight => 
+                  // Only include flights that have at least one airport and time data
+                  ((flight.estDepartureAirport !== 'Unknown' || 
+                    flight.estArrivalAirport !== 'Unknown') && 
+                    flight.firstSeen && flight.lastSeen)
+                );
+                
+                allFlights.push(...validFlights);
+              }              
               // Add 0.5s delay between API calls to avoid rate limiting
               await delay(500);
             } catch (err) {
