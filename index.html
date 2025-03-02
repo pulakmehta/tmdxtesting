@@ -206,7 +206,7 @@
               }
               
               // Add 0.5s delay between API calls to avoid rate limiting
-              await delay(500);
+              // await delay(500);
             } catch (err) {
               console.error(`Error fetching data for aircraft ${nNumber}:`, err);
               // Log the error but continue with next aircraft
