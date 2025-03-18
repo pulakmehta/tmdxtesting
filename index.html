@@ -282,6 +282,22 @@
 
       return (
         <div className="max-w-6xl mx-auto p-6">
+          {/* Substack Subscribe Banner */}
+          <div className="substack-banner rounded-lg shadow-md p-4 mb-6 flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center mb-3 md:mb-0">
+              <Newsletter />
+              <span className="ml-2 font-semibold">Subscribe to the best (free) stock pick newsletter</span>
+            </div>
+            <a 
+              href="https://jinacapital.substack.com" 
+              target="_blank"
+              rel="noopener noreferrer" 
+              className="bg-white text-blue-700 px-4 py-2 rounded font-semibold hover:bg-blue-50 transition-colors"
+            >
+              Subscribe to our free Substack
+            </a>
+          </div>
+          
           {/* Top Header with Logos and Developer Info */}
           <div className="bg-blue-800 text-white rounded-lg shadow-md p-4 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
@@ -301,23 +317,7 @@
               </div>
             </div>
           </div>
-          
-          {/* Substack Subscribe Banner */}
-          <div className="substack-banner rounded-lg shadow-md p-4 mb-6 flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center mb-3 md:mb-0">
-              <Newsletter />
-              <span className="ml-2 font-semibold">Get the latest market insights and analysis</span>
-            </div>
-            <a 
-              href="https://www.jinacapital.substack.com" 
-              target="_blank"
-              rel="noopener noreferrer" 
-              className="bg-white text-blue-700 px-4 py-2 rounded font-semibold hover:bg-blue-50 transition-colors"
-            >
-              Subscribe to our free Substack
-            </a>
-          </div>
-          
+                
           {/* Main Header */}
           <header className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
