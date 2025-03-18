@@ -74,6 +74,15 @@
       margin-bottom: 1rem;
       border-radius: 0.375rem;
     }
+    .substack-banner {
+      background: linear-gradient(to right, #3b82f6, #1d4ed8);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .substack-banner:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -120,6 +129,13 @@
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
         <line x1="12" y1="9" x2="12" y2="13"></line>
         <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    );
+    
+    const Newsletter = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
       </svg>
     );
 
@@ -286,6 +302,22 @@
             </div>
           </div>
           
+          {/* Substack Subscribe Banner */}
+          <div className="substack-banner rounded-lg shadow-md p-4 mb-6 flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center mb-3 md:mb-0">
+              <Newsletter />
+              <span className="ml-2 font-semibold">Get the latest market insights and analysis</span>
+            </div>
+            <a 
+              href="https://www.jinacapital.substack.com" 
+              target="_blank"
+              rel="noopener noreferrer" 
+              className="bg-white text-blue-700 px-4 py-2 rounded font-semibold hover:bg-blue-50 transition-colors"
+            >
+              Subscribe to our free Substack
+            </a>
+          </div>
+          
           {/* Main Header */}
           <header className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
@@ -424,6 +456,7 @@
             <p>Data is fetched from the OpenSky Network API with a 0.5s delay between requests to avoid rate limiting.</p>
             <p className="mt-1">All flights for each aircraft are displayed, including multiple flights per aircraft when available.</p>
             <p className="mt-1">Aircraft with no flights in the last 24 hours are automatically skipped.</p>
+            <p className="mt-3"><a href="https://www.jinacapital.substack.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Subscribe to Jina Capital's free Substack</a> for market insights and analysis.</p>
           </footer>
         </div>
       );
